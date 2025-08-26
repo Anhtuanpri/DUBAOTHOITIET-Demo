@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark" data-mode="auto">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dự báo — Liquid Glass (v3, search + theme)</title>
+<style>
+  /* ===== THEME TOKENS ===== */
+  :root{
+    /* DARK xám */
+    --bg:#0a0b0f; --fg:#e9eef6; --muted:#9aa4b2; --line:rgba(255,255,255,.10);
+    --accent:#7cc2ff; --bar:#ff9f43; --btn:#1a1d24; --shadow:0 20px 60px rgba(0,0,0,.55);
+    --glass:rgba(25,27,33,.28); --glass2:rgba(255,255,255,.06); --glow:rgba(255,255,255,.35);
+    --search-bg:rgba(255,255,255,.05); --search-icon:#b7c2d5; --placeholder:#a2adbd;
+    --seg-bg:#14161b; --seg-pill:#252932; --seg-text:#dfe7f5; --seg-muted:#9aa4b2;
+  }
+  [data-theme="light"]{
+    --bg:#f6f7fb; --fg:#1b2433; --muted:#6e7890; --line:rgba(17,28,42,.10);
+    --accent:#3c8df7; --bar:#ff9f43; --btn:#ffffff; --shadow:0 20px 50px rgba(18,24,38,.18);
+    --glass:rgba(255,255,255,.36); --glass2:rgba(17,28,42,.06); --glow:rgba(255,255,255,.65);
+    --search-bg:rgba(17,28,42,.06); --search-icon:#6f7b90; --placeholder:#8a95aa;
+    --seg-bg:#eef2f9; --seg-pill:#ffffff; --seg-text:#1b2433; --seg-muted:#6e7890;
+  }
+
+  /* ===== STAGE + LIQUID ===== */
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--fg); background:var(--bg);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    display:flex; align-items:center; justify-content:center; padding:22px; overflow-x:hidden;
+  }
+  .stage{position:relative; width:100%; max-width:480px; isolation:isolate}
+  .liquid{
+    position:absolute; inset:-20vh -10vw -10vh -10vw; z-index:-1; filter:blur(60px); pointer-events:none;
+    background:
+      radial-gradient(600px 600px at 90% 10%, rgba(42,98,255,0.22) 0%, transparent 60%),
+      radial-gradient(700px 700px at 0% 90%, rgba(0,194,255,0.18) 0%, transparent 62%),
+      radial-gradient(500px 500px at 30% 10%, rgba(255,138,0,0.20) 0%, transparent 60%),
+      radial-gradient(600px 600px at 10% 30%, rgba(123,66,255,0.16) 0%, transparent 60%);
+    animation:drift 24s ease-in-out infinite alternate;
+  }
+  @keyframes drift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(2%,-1%,0) scale(1.04)}100%{transform:translate3d(-2%,2%,0) scale(1.02)}}
+
+  /* ===== TOPBAR ===== */
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .brand{font-weight:800; letter-spacing:.4px}
+
+  /* Segmented control: Light / Auto / Dark */
+  .seg{
+    display:flex; gap:0; background:var(--seg-bg); border:1px solid var(--line);
+    border-radius:999px; padding:4px; align-items:center;
+  }
+  .seg button{
+    appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:999px;
+    color:var(--seg-muted); font-weight:700; cursor:pointer; min-width:64px;
+  }
+  .seg button.active{
+    background:var(--seg-pill); color:var(--seg-text); box-shadow:0 6px 18px rgba(0,0,0,.10);
+  }
+
+  /* ===== SEARCH (glass, icon trái/phải, clear) ===== */
+  .search{position:relative; display:flex; gap:8px; margin:10px 0 16px}
+  .search .box{
+    position:relative; flex:1; border-radius:14px; border:1px solid var(--line);
+    background:var(--search-bg); backdrop-filter:saturate(140%) blur(8px); -webkit-backdrop-filter:saturate(140%) blur(8px);
+  }
+  .search input{
+    width:100%; padding:12px 92px 12px 40px; border:0; background:transparent; color:var(--fg); outline:none;
+    font-size:15px;
+  }
+  .search input::placeholder{color:var(--placeholder)}
+  .s-icon{position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--search-icon); width:20px; height:20px; pointer-events:none}
+  .btn-clear{
+    position:absolute; right:84px; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%;
+    border:1px solid var(--line); background:transparent; color:var(--search-icon); cursor:pointer; display:none;
+  }
+  .search .actions{display:flex; gap:8px}
+  .btn{
+    border:1px solid var(--line); background:transparent; color:var(--fg);
+    padding:12px 14px; border-radius:12px; cursor:pointer; font-weight:700;
+  }
+  .go{background:var(--bar); color:#2b1600; border-color:transparent}
+
+  /* ===== GLASS CARD ===== */
+  .phone{
+    position:relative; border-radius:22px; border:1px solid var(--line); box-shadow:var(--shadow);
+    padding:20px 18px; overflow:hidden;
+    background:linear-gradient(180deg, var(--glass), var(--glass2));
+    backdrop-filter:saturate(155%) blur(16px); -webkit-backdrop-filter:saturate(155%) blur(16px);
+  }
+  .phone::before{content:""; position:absolute; inset:-20% -20% auto -20%; height:60%; background:linear-gradient(115deg, var(--glow), transparent 40%); opacity:.10; transform:rotate(-8deg); pointer-events:none}
+
+  /* ===== TEXTS ===== */
+  .city{letter-spacing:.45px; text-transform:capitalize}
+  .dow{color:var(--muted); font-size:12px; margin-top:2px}
+  .temp{font-size:72px; font-weight:900; line-height:.95; margin:12px 0 2px}
+  .cond{font-size:16px; margin-bottom:2px}
+  .greet{color:var(--muted); font-size:13px}
+
+  /* ===== STATS ===== */
+  .stats{display:flex; gap:18px; margin-top:12px; color:var(--muted); font-size:12px}
+  .stat .v{color:var(--fg); font-weight:700; font-size:14px}
+
+  /* ===== HOURLY ===== */
+  .hours{display:flex; gap:10px; overflow-x:auto; padding:14px 2px 8px; margin-top:6px}
+  .hour{min-width:78px; text-align:center; border:1px solid var(--line); border-radius:14px; padding:10px; background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); backdrop-filter:saturate(140%) blur(8px)}
+  .hour .t{color:var(--muted); font-size:12px}
+  .hour .v{font-weight:800; font-size:16px; margin:4px 0}
+  .hour .p{font-size:12px; color:var(--accent)}
+
+  /* ===== DAILY ===== */
+  .days{margin-top:8px; border-top:1px dashed var(--line)}
+  .row{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:0}
+  .d{width:58px; color:var(--muted)}
+  .icon{width:26px; height:26px}
+  .rain{width:52px; text-align:left; color:var(--accent); font-size:12px}
+  .temps{display:flex; align-items:center; gap:10px; margin-left:auto; width:56%}
+  .tmin,.tmax{width:38px; text-align:center}
+  .bar{position:relative; height:6px; border-radius:999px; flex:1; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06)); overflow:hidden}
+  .segT{position:absolute; inset:0 auto 0 0; height:100%; background:linear-gradient(90deg,#ffb770,#ff9f43 60%,#ff8b2a); border-radius:999px; width:20%}
+
+  .error{margin-top:10px; color:#ffb4b4; font-size:13px; display:none}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="liquid"></div>
+
+    <div class="topbar">
+      <div class="brand">DỰ BÁO</div>
+      <div class="seg" role="tablist" aria-label="Chế độ giao diện">
+        <button id="segLight" class="active" role="tab" aria-selected="false">Light</button>
+        <button id="segAuto"  role="tab" aria-selected="true">Auto</button>
+        <button id="segDark"  role="tab" aria-selected="false">Dark</button>
+      </div>
+    </div>
+
+    <div class="search" role="search">
+      <div class="box">
+        <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" placeholder="Nhập thành phố… (VD: Hà Nội, Vinh, Đà Nẵng)" autocomplete="off" aria-label="Tìm thành phố">
+        <button id="clearBtn" class="btn-clear" aria-label="Xóa ô tìm">✕</button>
+      </div>
+      <div class="actions">
+        <button class="btn go" id="btnS">Tìm</button>
+        <button class="btn" id="btnG">GPS</button>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="city" id="place">—</div>
+      <div class="dow" id="dow">—</div>
+
+      <div class="temp" id="temp">--°</div>
+      <div class="cond" id="cond">—</div>
+      <div class="greet" id="greet">—</div>
+
+      <div class="stats">
+        <div class="stat"><div>MẶT TRỜI</div><div class="v" id="sun">--:-- / --:--</div></div>
+        <div class="stat"><div>GIÓ</div><div class="v" id="wind">-- m/s</div></div>
+        <div class="stat"><div>NHIỆT</div><div class="v" id="hiLo">--/--°</div></div>
+      </div>
+
+      <div class="hours" id="hours"></div>
+      <div class="days" id="days"></div>
+      <div class="error" id="errBox">—</div>
+    </div>
+  </div>
+
+<script>
+/* ===== Icons (SVG) ===== */
+function icnSun(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>`}
+function icnCloud(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 18h9a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 9a4 4 0 0 0 1 9z"/></svg>`}
+function icnRain(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 17h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 8a4 4 0 0 0 1 9z"/><path d="M8 20l1-2M12 21l1-2M16 20l1-2"/></svg>`}
+function icnStorm(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 16h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 7a4 4 0 0 0 1 9z"/><path d="M11 22l2-4h-3l2-4"/></svg>`}
+function icnSnow(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>`}
+function iconFor(code){
+  if([95,96,99].includes(code)) return icnStorm();
+  if([61,63,65,80,81,82,51,53,55].includes(code)) return icnRain();
+  if([71,73,75,85,86].includes(code)) return icnSnow();
+  if([0,1].includes(code)) return icnSun();
+  return icnCloud();
+}
+
+/* ===== WMO text ===== */
+const WMO = {0:"Trời quang",1:"Ít mây",2:"Mây rải rác",3:"Nhiều mây",45:"Sương mù",48:"Sương mù băng",
+  51:"Mưa phùn nhẹ",53:"Mưa phùn",55:"Mưa phùn to",61:"Mưa nhẹ",63:"Mưa vừa",65:"Mưa to",
+  66:"Mưa lạnh nhẹ",67:"Mưa lạnh to",71:"Tuyết nhẹ",73:"Tuyết vừa",75:"Tuyết to",
+  80:"Mưa rào nhẹ",81:"Mưa rào",82:"Mưa rào to",95:"Dông",96:"Dông có mưa đá",99:"Dông đá to"};
+const el = s=>document.querySelector(s);
+const fmtH = t=> new Date(t).toLocaleTimeString([], {hour:'2-digit'});
+const fmtD = t=> new Date(t).toLocaleDateString('vi-VN',{weekday:'long', day:'2-digit', month:'2-digit'});
+
+/* ===== Errors ===== */
+function showErr(msg){ const b=el('#errBox'); b.textContent=msg||'Lỗi'; b.style.display='block'; setTimeout(()=>b.style.display='none',4500); }
+
+/* ===== Data ===== */
+async function geocode(name){
+  const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=vi&format=json`;
+  const r=await fetch(u); if(!r.ok) throw new Error('Không truy cập geocoding');
+  const j=await r.json(); if(!j.results?.length) throw new Error('Không tìm thấy địa danh (thử: Ha Noi, Vinh)');
+  const a=j.results[0]; return {lat:a.latitude, lon:a.longitude, label:`${a.name}${a.admin1? ", "+a.admin1:""}${a.country? ", "+a.country:""}`};
+}
+async function forecast(lat,lon){
+  const p=new URLSearchParams({
+    latitude:lat, longitude:lon, timezone:'auto',
+    current:['temperature_2m','weather_code','wind_speed_10m','is_day'].join(','),
+    hourly:['temperature_2m','precipitation_probability','weather_code'].join(','),
+    daily:['weather_code','temperature_2m_max','temperature_2m_min','sunrise','sunset','precipitation_probability_max'].join(','),
+    forecast_days:10
+  });
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?${p}`); if(!r.ok) throw new Error('Không lấy được dữ liệu thời tiết');
+  return r.json();
+}
+
+/* ===== Render ===== */
+function renderMain(d,label){
+  el('#place').textContent=label||'—';
+  el('#dow').textContent=fmtD(new Date());
+  el('#temp').textContent=d.current?.temperature_2m!=null? Math.round(d.current.temperature_2m)+'°':'—';
+  el('#cond').textContent=d.current?.weather_code!=null? (WMO[d.current.weather_code]||'Không rõ'):'—';
+  el('#greet').textContent=d.current?.is_day? 'Chúc một ngày tốt lành':'Chúc buổi tối an yên';
+  if(d.daily?.temperature_2m_max && d.daily?.temperature_2m_min){
+    el('#hiLo').textContent=`${Math.round(d.daily.temperature_2m_max[0])}/${Math.round(d.daily.temperature_2m_min[0])}°`;
+  }
+  el('#wind').textContent=d.current?.wind_speed_10m!=null? `${Math.round(d.current.wind_speed_10m)} m/s`:'—';
+  if(d.daily?.sunrise && d.daily?.sunset){
+    const sr=new Date(d.daily.sunrise[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const ss=new Date(d.daily.sunset[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    el('#sun').textContent=`${sr} / ${ss}`;
+  }
+  // Auto-mode sync theo ngày/đêm
+  if(document.documentElement.getAttribute('data-mode')==='auto' && d.current){
+    setTheme(d.current.is_day?'light':'dark', false);
+  }
+}
+function renderHours(d){
+  const box=el('#hours'); box.innerHTML='';
+  const h=d.hourly; if(!h?.time) return;
+  let nowIdx=h.time.findIndex(t=> new Date(t)>=new Date()); if(nowIdx<0) nowIdx=0;
+  const count=12; for(let k=0;k<count && nowIdx+k<h.time.length;k++){
+    const i=nowIdx+k; const t=h.time[i]; const tp=h.temperature_2m? Math.round(h.temperature_2m[i]):'—';
+    const pp=h.precipitation_probability? (h.precipitation_probability[i]||0):0;
+    const div=document.createElement('div'); div.className='hour';
+    div.innerHTML=`<div class="t">${fmtH(t)}</div><div class="v">${tp}°</div><div class="p">${pp}%</div>`;
+    box.appendChild(div);
+  }
+}
+function renderDays(d){
+  const box=el('#days'); box.innerHTML=''; const x=d.daily; if(!x?.time) return;
+  const gMin=Math.min(...x.temperature_2m_min), gMax=Math.max(...x.temperature_2m_max), span=Math.max(1, gMax-gMin);
+  for(let i=0;i<x.time.length;i++){
+    const label = (i===0?'Hôm nay': new Date(x.time[i]).toLocaleDateString('vi-VN',{weekday:'short'}));
+    const min=Math.round(x.temperature_2m_min[i]), max=Math.round(x.temperature_2m_max[i]);
+    const start=((min-gMin)/span)*100, width=((max-min)/span)*100;
+    const ic = iconFor(x.weather_code? x.weather_code[i]:1);
+    const pp = x.precipitation_probability_max? Math.round(x.precipitation_probability_max[i]||0):0;
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML=`
+      <div class="d">${label}</div>
+      ${ic}
+      <div class="rain">${pp}%</div>
+      <div class="temps">
+        <div class="tmin">${min}°</div>
+        <div class="bar"><div class="segT" style="left:${start}%;width:${Math.max(6,width)}%"></div></div>
+        <div class="tmax">${max}°</div>
+      </div>`;
+    box.appendChild(row);
+  }
+}
+
+/* ===== Loaders ===== */
+async function loadByName(name){
+  try{ const g=await geocode(name); const d=await forecast(g.lat,g.lon);
+       renderMain(d,g.label); renderHours(d); renderDays(d);
+  }catch(e){ showErr(e.message||e); }
+}
+function loadByGPS(){
+  if(!navigator.geolocation){ showErr('Thiết bị không hỗ trợ GPS'); return; }
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude; let label=`(${lat.toFixed(3)}, ${lon.toFixed(3)})`;
+    try{ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=vi&count=1`);
+         if(r.ok){ const j=await r.json(); if(j.results?.[0]){ const a=j.results[0]; label=`${a.name}${a.admin1? ", "+a.admin1:""}${a.country? ", "+a.country:""}`; } }
+    }catch{}
+    try{ const d=await forecast(lat,lon); renderMain(d,label); renderHours(d); renderDays(d); }
+    catch(e){ showErr(e.message||e); }
+  }, err=> showErr("Không lấy được GPS: "+err.message));
+}
+
+/* ===== THEME: Light / Auto / Dark ===== */
+function setTheme(theme, lock=true){
+  const root=document.documentElement;
+  root.setAttribute('data-theme', theme==='light'?'light':'dark');
+  // cập nhật trạng thái nút
+  document.getElementById('segLight').classList.toggle('active', theme==='light' && root.getAttribute('data-mode')!=='auto');
+  document.getElementById('segDark').classList.toggle('active', theme==='dark' && root.getAttribute('data-mode')!=='auto');
+  document.getElementById('segAuto').classList.toggle('active', root.getAttribute('data-mode')==='auto');
+  if(lock){ localStorage.setItem('theme', theme); }
+}
+function setMode(mode){ // 'light' | 'dark' | 'auto'
+  const root=document.documentElement;
+  root.setAttribute('data-mode', mode);
+  if(mode==='auto'){ localStorage.setItem('mode','auto'); localStorage.removeItem('themeLocked'); document.getElementById('segAuto').classList.add('active'); }
+  else{ localStorage.setItem('mode','manual'); localStorage.setItem('themeLocked','1'); setTheme(mode); }
+}
+(function initTheme(){
+  const mode = localStorage.getItem('mode')==='manual' ? 'manual' : 'auto';
+  const stored = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light':'dark');
+  document.documentElement.setAttribute('data-mode', mode==='auto'?'auto':'manual');
+  setTheme(stored, false);
+  if(mode==='auto'){ document.getElementById('segAuto').classList.add('active'); }
+})();
+document.getElementById('segLight').onclick=()=> setMode('light');
+document.getElementById('segAuto').onclick =()=> { setMode('auto'); };   // Auto sẽ sync theo API lúc renderMain
+document.getElementById('segDark').onclick =()=> setMode('dark');
+
+/* ===== Search interactions ===== */
+const q=el('#q'), clearBtn=el('#clearBtn');
+q.addEventListener('input',()=> { clearBtn.style.display = q.value? 'block':'none'; });
+clearBtn.onclick=()=> { q.value=''; clearBtn.style.display='none'; q.focus(); };
+document.getElementById('btnS').onclick=()=>{ const v=q.value.trim(); if(v) loadByName(v); else showErr('Nhập tên thành phố trước đã'); };
+document.getElementById('btnG').onclick=loadByGPS;
+
+/* Default */
+loadByName("Hà Nội");
+</script>
+</body>
+</html>
