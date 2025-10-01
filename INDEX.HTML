@@ -3,93 +3,82 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Test dự báo thời tiết share free by Tuanapple</title>
-<style>
-  /* ===== TOKENS ===== */
-  :root{
-    /* DARK xám */
-    --bg:#0e0f12;
-    --bg-grad: radial-gradient(900px 600px at 100% 0%, #1b1d22 0%, transparent 60%),
-               radial-gradient(1200px 700px at 0% 100%, #15171c 0%, transparent 65%),
-               #0e0f12;
-    --card:#16181d;
-    --line:#22252b;
-    --fg:#e8ecf3;
-    --muted:#9aa4b2;
-    --accent:#76befc;        /* mưa % */
-    --bar:#ff9f43;           /* thanh nhiệt */
-    --btn:#2a2d34;
-    --shadow:0 18px 60px rgba(0,0,0,.5);
-  }
-  [data-theme="light"]{
-    --bg:#f6f7fb;
-    --bg-grad: radial-gradient(900px 600px at 20% -10%, #ffe7b7 0%, transparent 60%),
-               radial-gradient(1200px 700px at 120% 120%, #eaf0ff 0%, transparent 65%),
-               #f6f7fb;
-    --card:#ffffff;
-    --line:#e8ecf5;
-    --fg:#1c2330;
-    --muted:#6e7890;
-    --accent:#3c8df7;
-    --bar:#ff9f43;
-    --btn:#f0f3fa;
-    --shadow:0 18px 60px rgba(12,16,24,.16);
-  }
+<title>Thời tiết + Báo bão</title>
 
-  /* ===== GLOBAL ===== */
-  *{box-sizing:border-box}
-  body{
-    margin:0; color:var(--fg); background:var(--bg-grad);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    min-height:100svh; display:flex; align-items:center; justify-content:center; padding:24px;
+<!-- Manifest & iOS meta -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0e0f12">
+
+<!-- Leaflet map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+<style>
+  :root{
+    --bg:#0e0f12; --bg-grad: radial-gradient(900px 600px at 100% 0%, #1b1d22 0%, transparent 60%), radial-gradient(1200px 700px at 0% 100%, #15171c 0%, transparent 65%), #0e0f12;
+    --card:#16181d; --line:#22252b; --fg:#e8ecf3; --muted:#9aa4b2; --accent:#76befc; --bar:#ff9f43; --btn:#2a2d34; --shadow:0 18px 60px rgba(0,0,0,.5);
+    --red:#ef4444; --orange:#f59e0b; --green:#22c55e; --blue:#3b82f6;
   }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--fg);background:var(--bg-grad);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px}
   .wrap{width:100%; max-width:460px}
-  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
-  .brand{font-weight:800; letter-spacing:.4px}
-  .theme{display:flex; gap:8px}
-  .btn{border:1px solid var(--line); background:var(--btn); color:var(--fg);
-       padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .brand{font-weight:800;letter-spacing:.4px}
+  .theme{display:flex;gap:8px}
+  .btn{border:1px solid var(--line);background:var(--btn);color:var(--fg);padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:600}
   .btn.switch{background:transparent}
   .btn.active{outline:2px solid var(--line)}
-  .search{display:flex; gap:8px; margin:8px 0 16px}
-  .search input{
-    flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:12px;
-    background: transparent; color:var(--fg); outline:none;
-  }
-  .search .go{padding:12px 14px; border:0; border-radius:12px; background:var(--bar); color:#2b1600; font-weight:800; cursor:pointer}
-
-  /* ===== PHONE CARD ===== */
-  .phone{
-    background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow);
-    padding:20px 18px; overflow:hidden;
-  }
-  .city{letter-spacing:.4px; text-transform:capitalize}
-  .dow{color:var(--muted); font-size:12px; margin-top:2px}
-  .temp{font-size:72px; font-weight:900; line-height:.95; margin:12px 0 2px}
-  .cond{font-size:16px; margin-bottom:2px}
-  .greet{color:var(--muted); font-size:13px}
-
-  .stats{display:flex; gap:18px; margin-top:12px; color:var(--muted); font-size:12px}
-  .stat .v{color:var(--fg); font-weight:700; font-size:14px}
-
-  .hours{display:flex; gap:10px; overflow-x:auto; padding:14px 2px 8px; margin-top:6px}
-  .hour{min-width:78px; text-align:center; border:1px solid var(--line); border-radius:14px; padding:10px; background:transparent}
-  .hour .t{color:var(--muted); font-size:12px}
-  .hour .v{font-weight:800; font-size:16px; margin:4px 0}
-  .hour .p{font-size:12px; color:var(--accent)}
-
-  .days{margin-top:8px; border-top:1px dashed var(--line)}
-  .row{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px dashed var(--line)}
+  .search{display:flex;gap:8px;margin:8px 0 16px}
+  .search input{flex:1;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--fg);outline:none}
+  .search .go{padding:12px 14px;border:0;border-radius:12px;background:var(--bar);color:#2b1600;font-weight:800;cursor:pointer}
+  .phone{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:20px 18px;overflow:hidden}
+  .city{letter-spacing:.4px;text-transform:capitalize}
+  .dow{color:var(--muted);font-size:12px;margin-top:2px}
+  .temp{font-size:72px;font-weight:900;line-height:.95;margin:12px 0 2px}
+  .cond{font-size:16px;margin-bottom:2px}
+  .greet{color:var(--muted);font-size:13px}
+  .stats{display:flex;gap:18px;margin-top:12px;color:var(--muted);font-size:12px}
+  .stat .v{color:var(--fg);font-weight:700;font-size:14px}
+  .hours{display:flex;gap:10px;overflow-x:auto;padding:14px 2px 8px;margin-top:6px}
+  .hour{min-width:78px;text-align:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:transparent}
+  .hour .t{color:var(--muted);font-size:12px}
+  .hour .v{font-weight:800;font-size:16px;margin:4px 0}
+  .hour .p{font-size:12px;color:var(--accent)}
+  .days{margin-top:8px;border-top:1px dashed var(--line)}
+  .row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line)}
   .row:last-child{border-bottom:0}
-  .d{width:58px; color:var(--muted)}          /* Th 2, Th 3 ... */
-  .icon{width:26px; height:26px}
-  .rain{width:52px; text-align:left; color:var(--accent); font-size:12px}
-  .temps{display:flex; align-items:center; gap:10px; margin-left:auto; width:56%}
-  .tmin, .tmax{width:38px; text-align:center; color:var(--fg)}
-  .bar{position:relative; height:6px; border-radius:999px; background:rgba(255,255,255,.08); flex:1}
-  .bar .seg{position:absolute; height:100%; background:var(--bar); border-radius:999px; left:0; width:20%}
+  .d{width:58px;color:var(--muted)}
+  .icon{width:26px;height:26px}
+  .rain{width:52px;text-align:left;color:var(--accent);font-size:12px}
+  .temps{display:flex;align-items:center;gap:10px;margin-left:auto;width:56%}
+  .tmin,.tmax{width:38px;text-align:center;color:var(--fg)}
+  .bar{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.08);flex:1}
+  .bar .seg{position:absolute;height:100%;background:var(--bar);border-radius:999px;left:0;width:20%}
+  footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
 
-  footer{margin-top:12px; text-align:center; color:var(--muted); font-size:12px}
+  .panel{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px}
+  .panel h3{margin:4px 0 8px;font-size:16px}
+  .hint{color:var(--muted);font-size:12px}
+  #map{height:280px;border-radius:12px;overflow:hidden;border:1px solid var(--line);margin-top:8px}
+  .legend{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-top:6px}
+  .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+  .dot.red{background:#ef4444} .dot.orange{background:#f59e0b} .dot.green{background:#22c55e} .dot.me{background:#3b82f6}
+  .storm-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .storm{border:1px dashed var(--line);border-radius:12px;padding:10px}
+  .storm.ended{opacity:.65} /* NEW: làm mờ nếu đã tan ≤ 3 ngày */
+  .storm .hd{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .storm .name{font-weight:800}
+  .badge{padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+  .badge.red{background:#3a0a0a;color:#ffb4b4;border-color:#5f1515}
+  .badge.orange{background:#3a2a06;color:#ffd88a;border-color:#7a530b}
+  .badge.green{background:#052d1a;color:#7de2aa;border-color:#14532d}
+  .badge.gray{background:#20232a;color:#cbd5e1;border-color:#364152} /* NEW: badge xám cho bão đã tan */
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-top:6px;color:var(--muted)}
+  .kv b{color:var(--fg)}
+  .warn{margin-top:6px;padding:8px;border:1px dashed var(--line);border-radius:10px;font-size:12px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -99,6 +88,7 @@
       <div class="theme">
         <button class="btn switch" id="lightBtn">Light</button>
         <button class="btn switch active" id="darkBtn">Dark</button>
+        <button class="btn" id="installBtn" style="display:none">Cài đặt ứng dụng</button>
       </div>
     </div>
 
@@ -126,160 +116,217 @@
       <div class="days" id="days"></div>
     </div>
 
-    <footer>Made By Tuấn Apple - Mã Nguồn được chia sẽ miễn phí</footer>
+    <div class="panel">
+      <h3>🗺️ Bản đồ &amp; 🌀 Bão đang hoạt động</h3>
+      <div class="hint">Ưu tiên bão gần vị trí của bạn. Nhấn <b>GPS</b> để định vị chính xác.</div>
+      <div id="map"></div>
+      <div class="legend"><span class="dot me"></span> Vị trí của tôi  ·  <span class="dot red"></span> Đỏ  ·  <span class="dot orange"></span> Cam  ·  <span class="dot green"></span> Xanh</div>
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" id="btnStorms">Tải bão (GDACS)</button>
+        <button class="btn" id="btnAuto">Auto 3h: OFF</button>
+      </div>
+      <div class="storm-list" id="stormList"></div>
+      <div class="hint" id="stormStatus"></div>
+    </div>
+
+    <footer>Made By Tuấn Apple - Share Free</footer>
   </div>
 
 <script>
-/* ===== ICONS (SVG) — gọn, tối giản ===== */
-function icnSun(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6">
-<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>`}
-function icnCloud(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6">
-<path d="M7 18h9a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 9a4 4 0 0 0 1 9z"/></svg>`}
-function icnRain(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6">
-<path d="M7 17h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 8a4 4 0 0 0 1 9z"/><path d="M8 20l1-2M12 21l1-2M16 20l1-2"/></svg>`}
-function icnStorm(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6">
-<path d="M7 16h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 7a4 4 0 0 0 1 9z"/>
-<path d="M11 22l2-4h-3l2-4"/></svg>`}
-function icnSnow(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6">
-<path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>`}
-function iconFor(code){
-  if([95,96,99].includes(code)) return icnStorm();
-  if([61,63,65,80,81,82,51,53,55].includes(code)) return icnRain();
-  if([71,73,75,85,86].includes(code)) return icnSnow();
-  if([0,1].includes(code)) return icnSun();
-  return icnCloud();
+/* --- Icons (SVG) giản lược --- */
+function icnSun(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>`}
+function icnCloud(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 18h9a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 9a4 4 0 0 0 1 9z"/></svg>`}
+function icnRain(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 17h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 8a4 4 0 0 0 1 9z"/><path d="M8 20l1-2M12 21l1-2M16 20l1-2"/></svg>`}
+function icnStorm(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 16h8a4 4 0 0 0 .6-7.96A6 6 0 0 0 6 7a4 4 0 0 0 1 9z"/><path d="M11 22l2-4h-3l2-4"/></svg>`}
+function icnSnow(){return `<svg viewBox="0 0 24 24" class="icon" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>`}
+function iconFor(code){if([95,96,99].includes(code))return icnStorm();if([61,63,65,80,81,82,51,53,55].includes(code))return icnRain();if([71,73,75,85,86].includes(code))return icnSnow();if([0,1].includes(code))return icnSun();return icnCloud();}
+const WMO={0:"Trời quang",1:"Ít mây",2:"Mây rải rác",3:"Nhiều mây",45:"Sương mù",48:"Sương mù băng",51:"Mưa phùn nhẹ",53:"Mưa phùn",55:"Mưa phùn to",61:"Mưa nhẹ",63:"Mưa vừa",65:"Mưa to",66:"Mưa lạnh nhẹ",67:"Mưa lạnh to",71:"Tuyết nhẹ",73:"Tuyết vừa",75:"Tuyết to",80:"Mưa rào nhẹ",81:"Mưa rào",82:"Mưa rào to",95:"Dông",96:"Dông có mưa đá",99:"Dông đá to"};
+const el=s=>document.querySelector(s), fmtH=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit'}), fmtD=t=>new Date(t).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'});
+
+/* --- Weather APIs (Open-Meteo) --- */
+async function geocode(name){const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=vi&format=json`;const r=await fetch(u);const j=await r.json();if(!j.results?.length)throw new Error("Không tìm thấy địa danh");const a=j.results[0];return {lat:a.latitude,lon:a.longitude,label:`${a.name}${a.admin1?", "+a.admin1:""}${a.country?", "+a.country:""}`};}
+async function forecast(lat,lon){const p=new URLSearchParams({latitude:lat,longitude:lon,timezone:'auto',current:['temperature_2m','weather_code','wind_speed_10m','is_day'].join(','),hourly:['temperature_2m','precipitation_probability','weather_code'].join(','),daily:['weather_code','temperature_2m_max','temperature_2m_min','sunrise','sunset','precipitation_probability_max'].join(','),forecast_days:10});const r=await fetch(`https://api.open-meteo.com/v1/forecast?${p}`);if(!r.ok)throw new Error("Lỗi dữ liệu");return r.json();}
+
+/* --- Render weather --- */
+function renderMain(d,label){el('#place').textContent=label;el('#dow').textContent=fmtD(new Date());el('#temp').textContent=Math.round(d.current.temperature_2m)+'°';el('#cond').textContent=WMO[d.current.weather_code]||('Mã '+d.current.weather_code);el('#greet').textContent=d.current.is_day?"Chúc một ngày tốt lành":"Chúc buổi tối an yên";el('#hiLo').textContent=`${Math.round(d.daily.temperature_2m_max[0])}/${Math.round(d.daily.temperature_2m_min[0])}°`;el('#wind').textContent=`${Math.round(d.current.wind_speed_10m)} m/s`;const sr=new Date(d.daily.sunrise[0]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});const ss=new Date(d.daily.sunset[0]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});el('#sun').textContent=`${sr} / ${ss}`;}
+function renderHours(d){const h=d.hourly,box=el('#hours');box.innerHTML='';const nowIdx=h.time.findIndex(t=>new Date(t)>=new Date());const take=Array.from({length:12},(_,i)=>nowIdx+i).filter(i=>i<h.time.length);for(const i of take){const div=document.createElement('div');div.className='hour';div.innerHTML=`<div class="t">${fmtH(h.time[i])}</div><div class="v">${Math.round(h.temperature_2m[i])}°</div><div class="p">${h.precipitation_probability?.[i] ?? 0}%</div>`;box.appendChild(div);}}
+function renderDays(d){const x=d.daily,box=el('#days');box.innerHTML='';const gMin=Math.min(...x.temperature_2m_min),gMax=Math.max(...x.temperature_2m_max),span=Math.max(1,gMax-gMin);for(let i=0;i<x.time.length;i++){const day=new Date(x.time[i]).toLocaleDateString('vi-VN',{weekday:'short'});const min=Math.round(x.temperature_2m_min[i]),max=Math.round(x.temperature_2m_max[i]);const start=((min-gMin)/span)*100,width=((max-min)/span)*100;const row=document.createElement('div');row.className='row';row.innerHTML=`<div class="d">${i===0?'Hôm nay':day}</div>${iconFor(x.weather_code[i])}<div class="rain">${Math.round(x.precipitation_probability_max?.[i] ?? 0)}%</div><div class="temps"><div class="tmin">${min}°</div><div class="bar"><div class="seg" style="left:${start}%;width:${Math.max(6,width)}%"></div></div><div class="tmax">${max}°</div></div>`;box.appendChild(row);}}
+
+/* --- App state --- */
+let currentRef=null;
+
+/* --- Map (Leaflet) + markers --- */
+let map, meMarker, meAccuracy, stormMarkers=[];
+function mapInit(){map=L.map('map',{zoomControl:true,attributionControl:false}).setView([21.03,105.85],5);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);}
+function mapSetView(lat,lon){map.setView([lat,lon],5);}
+function drawMe(lat,lon,acc){if(meMarker)meMarker.remove();if(meAccuracy)meAccuracy.remove();meMarker=L.circleMarker([lat,lon],{radius:6,color:'#1d4ed8',fillColor:'#3b82f6',fillOpacity:.9,weight:2}).addTo(map).bindTooltip("Vị trí của tôi",{permanent:false});if(acc){meAccuracy=L.circle([lat,lon],{radius:acc,color:'#93c5fd',fillColor:'#93c5fd',fillOpacity:.15,weight:1}).addTo(map);}}
+function mapResetStormMarkers(){stormMarkers.forEach(m=>m.remove());stormMarkers=[];}
+function addStormMarker(s){
+  const color=s.alertlevel==='RED'?'#ef4444':(s.alertlevel==='ORANGE'?'#f59e0b':'#22c55e');
+  if(!s.lat||!s.lon)return;
+  const mk=L.circleMarker([s.lat,s.lon],{radius:7,color:color,fillColor:color,fillOpacity:.85,weight:2});
+  const statusLine = s._life?.state==='ended'
+      ? `Trạng thái: ĐÃ TAN (${s._life.daysAgo} ngày trước)`
+      : (s._life?.state==='active-until' ? `Trạng thái: ĐANG HOẠT ĐỘNG (đến ${s.end})` : 'Trạng thái: ĐANG HOẠT ĐỘNG');
+  mk.addTo(map).bindPopup(`<b>${s.name||s.eventname||'Không tên'}</b><br/>${statusLine}<br/>Cảnh báo: ${s.alertlevel||'—'}<br/>Cập nhật: ${s.timeStr||'—'}<br/>Gió duy trì: ${s.maxwind!=null? s.maxwind+' km/h':'—'}<br/>Gió giật: ${s.maxgust!=null? s.maxgust+' km/h':'—'}`);
+  stormMarkers.push(mk);
 }
 
-/* ===== MAP CODE → TEXT ===== */
-const WMO = {
-  0:"Trời quang",1:"Ít mây",2:"Mây rải rác",3:"Nhiều mây",
-  45:"Sương mù",48:"Sương mù băng",
-  51:"Mưa phùn nhẹ",53:"Mưa phùn",55:"Mưa phùn to",
-  61:"Mưa nhẹ",63:"Mưa vừa",65:"Mưa to",
-  66:"Mưa lạnh nhẹ",67:"Mưa lạnh to",
-  71:"Tuyết nhẹ",73:"Tuyết vừa",75:"Tuyết to",
-  80:"Mưa rào nhẹ",81:"Mưa rào",82:"Mưa rào to",
-  95:"Dông",96:"Dông có mưa đá",99:"Dông đá to"
-};
-const el = s=>document.querySelector(s);
-const fmtH = t=> new Date(t).toLocaleTimeString([],{hour:'2-digit'});
-const fmtD = t=> new Date(t).toLocaleDateString('vi-VN',{weekday:'long', day:'2-digit', month:'2-digit'});
+/* --- GPS watch: chấm xanh + vòng sai số --- */
+let watchId=null;
+async function loadByName(name){try{const g=await geocode(name);const d=await forecast(g.lat,g.lon);currentRef={lat:g.lat,lon:g.lon,label:g.label};renderMain(d,g.label);renderHours(d);renderDays(d);mapSetView(g.lat,g.lon);if(storms.length)renderStorms();}catch(e){alert(e.message||e);}}
+function loadByGPS(){if(!navigator.geolocation){alert("Thiết bị không hỗ trợ GPS");return;}if(watchId)navigator.geolocation.clearWatch(watchId);watchId=navigator.geolocation.watchPosition(async pos=>{const {latitude:lat,longitude:lon,accuracy}=pos.coords;let label=`(${lat.toFixed(3)}, ${lon.toFixed(3)})`;try{const r=await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=vi&count=1`);const j=await r.json();if(j.results?.[0]){const a=j.results[0];label=`${a.name}${a.admin1? ", "+a.admin1:""}${a.country? ", "+a.country:""}`;}}catch{}const d=await forecast(lat,lon);currentRef={lat,lon,label};renderMain(d,label);renderHours(d);renderDays(d);mapSetView(lat,lon);drawMe(lat,lon,accuracy||0);if(storms.length)renderStorms();},err=>alert("Không lấy được GPS: "+err.message),{enableHighAccuracy:true,timeout:15000,maximumAge:0});}
 
-/* ===== DATA ===== */
-async function geocode(name){
-  const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=vi&format=json`;
-  const r=await fetch(u); const j=await r.json();
-  if(!j.results?.length) throw new Error("Không tìm thấy địa danh");
-  const a=j.results[0];
-  return {lat:a.latitude, lon:a.longitude, label:`${a.name}${a.admin1? ", "+a.admin1:""}${a.country? ", "+a.country:""}`};
+/* --- GDACS: bão + gió/gió giật + cảnh báo + TRẠNG THÁI/TỰ ẨN --- */
+let storms=[],autoTimer=null;
+function kt2kmh(kts){return Math.round(kts*1.852);}
+function guessGust(kmh){return kmh!=null?Math.round(kmh*1.3):null;}
+function stormLevel(maxwind){if(maxwind==null)return {name:"Chưa rõ",cat:0};if(maxwind<63)return {name:"ATNĐ",cat:0};if(maxwind<119)return {name:"Bão nhiệt đới (TS)",cat:0};if(maxwind<154)return {name:"Siêu bão C1",cat:1};if(maxwind<178)return {name:"Siêu bão C2",cat:2};if(maxwind<209)return {name:"Siêu bão C3",cat:3};if(maxwind<252)return {name:"Siêu bão C4",cat:4};return {name:"Siêu bão C5",cat:5};}
+function hazardAdvice(s){const w=s.maxwind,g=s.maxgust ?? guessGust(w);const L=stormLevel(w);const sea=w>=119?"Sóng rất cao (≥6–10 m), biển động dữ dội.":(w>=63?"Sóng cao (3–6 m), biển động mạnh.":"Biển động vừa, cần theo dõi.");const rain=s.alertlevel==='RED'?"Mưa rất to, nguy cơ lũ quét & sạt lở.":(s.alertlevel==='ORANGE'?"Mưa to, ngập úng cục bộ.":"Mưa rào/giông cục bộ.");const windLine=(w!=null?`Gió duy trì ~${w} km/h`:"Gió duy trì chưa rõ")+(g!=null?`, giật tới ~${g} km/h`:"");const onLand="Khuyến cáo: tránh vùng ven biển thấp, neo đậu tàu thuyền, dự trữ điện/nước, theo dõi thông báo chính thức.";return `Mức: ${L.name}. ${windLine}. ${sea} ${rain} ${onLand}`;}
+
+/* NEW: suy luận vòng đời bão + tiêu chí ẩn */
+function parseISODate(d){ if(!d) return null; const t = new Date(d+"T00:00:00Z"); return isNaN(t)?null:t; }
+function stormLifecycle(s){
+  const now = new Date();
+  const ed = parseISODate(s.end);
+  if(!ed) return {state:'active', daysAgo:null, hide:false};         // chưa có todate
+  const diff = Math.floor((now - ed)/86400000);                       // ngày từ lúc tan
+  if(diff < 0) return {state:'active-until', daysAgo:null, hide:false}; // còn hoạt động tới ed
+  return {state:'ended', daysAgo:diff, hide: diff > 3};               // ẩn nếu đã tan > 3 ngày
 }
-async function forecast(lat,lon){
-  const p=new URLSearchParams({
-    latitude:lat, longitude:lon, timezone:'auto',
-    current:['temperature_2m','weather_code','wind_speed_10m','is_day'].join(','),
-    hourly:['temperature_2m','precipitation_probability','weather_code'].join(','),
-    daily:['weather_code','temperature_2m_max','temperature_2m_min','sunrise','sunset','precipitation_probability_max'].join(','),
-    forecast_days:10
+
+async function fetchGDACS_List(days=30){
+  const now=new Date();const to=now.toISOString().slice(0,10);
+  const past=new Date(now.getTime()-days*86400000).toISOString().slice(0,10);
+  const url=`https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&fromdate=${past}&todate=${to}&alertlevel=red;orange;green&format=json`;
+  const r=await fetch(url,{headers:{'Accept':'application/json'}});if(!r.ok)throw new Error("GDACS list lỗi/CORS");
+  const j=await r.json();const feats=j.features?j.features:[];
+  return feats.map(f=>{
+    const p=f.properties||{},g=f.geometry||{};
+    let lat=null,lon=null;
+    if(g.type==='Point'&&Array.isArray(g.coordinates)){lon=g.coordinates[0];lat=g.coordinates[1];}
+    else if(g.type==='MultiPoint'&&Array.isArray(g.coordinates)&&g.coordinates[0]){lon=g.coordinates[0][0];lat=g.coordinates[0][1];}
+    let maxwind=p.maxwind_kmh||p.maxwind||null;
+    let maxgust=p.maxgust_kmh||p.maxgust||null;
+    if(!maxwind&&p.maxwind_kts)maxwind=kt2kmh(p.maxwind_kts);
+    if(!maxgust&&p.maxgust_kts)maxgust=kt2kmh(p.maxgust_kts);
+    return {eventid:p.eventid,name:p.name||p.eventname||"",alertlevel:(p.alertlevel||"").toUpperCase(),start:p.fromdate?p.fromdate.slice(0,10):null,end:p.todate?p.todate.slice(0,10):null,countries:p.country||p.affectedcountries||p.countrylist||"",gdacsUrl:p.gdacsurl||p.eventurl||"",lat,lon,maxwind,maxgust,timeStr:null,approx:false,_life:null};
   });
-  const r=await fetch(`https://api.open-meteo.com/v1/forecast?${p}`);
-  if(!r.ok) throw new Error("Lỗi dữ liệu");
-  return r.json();
 }
-
-/* ===== RENDER ===== */
-function renderMain(d,label){
-  el('#place').textContent=label;
-  el('#dow').textContent=fmtD(new Date());
-  el('#temp').textContent=Math.round(d.current.temperature_2m)+'°';
-  el('#cond').textContent=WMO[d.current.weather_code]||('Mã '+d.current.weather_code);
-  el('#greet').textContent=d.current.is_day? "Chúc một ngày tốt lành" : "Chúc buổi tối an yên";
-  el('#hiLo').textContent=`${Math.round(d.daily.temperature_2m_max[0])}/${Math.round(d.daily.temperature_2m_min[0])}°`;
-  el('#wind').textContent=`${Math.round(d.current.wind_speed_10m)} m/s`;
-  const sr=new Date(d.daily.sunrise[0]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const ss=new Date(d.daily.sunset[0]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  el('#sun').textContent=`${sr} / ${ss}`;
-}
-
-function renderHours(d){
-  const h=d.hourly, box=el('#hours'); box.innerHTML='';
-  const nowIdx=h.time.findIndex(t=> new Date(t)>=new Date());
-  const take=Array.from({length:12},(_,i)=>nowIdx+i).filter(i=>i<h.time.length);
-  for(const i of take){
-    const div=document.createElement('div'); div.className='hour';
-    div.innerHTML=`
-      <div class="t">${fmtH(h.time[i])}</div>
-      <div class="v">${Math.round(h.temperature_2m[i])}°</div>
-      <div class="p">${h.precipitation_probability?.[i] ?? 0}%</div>`;
-    box.appendChild(div);
-  }
-}
-
-function renderDays(d){
-  const x=d.daily, box=el('#days'); box.innerHTML='';
-  const gMin=Math.min(...x.temperature_2m_min);
-  const gMax=Math.max(...x.temperature_2m_max);
-  const span=Math.max(1, gMax-gMin);
-
-  for(let i=0;i<x.time.length;i++){
-    const day=new Date(x.time[i]).toLocaleDateString('vi-VN',{weekday:'short'});
-    const min=Math.round(x.temperature_2m_min[i]);
-    const max=Math.round(x.temperature_2m_max[i]);
-    const start=((min-gMin)/span)*100;
-    const width=((max-min)/span)*100;
-
-    const row=document.createElement('div'); row.className='row';
-    row.innerHTML=`
-      <div class="d">${i===0?'Hôm nay':day}</div>
-      ${iconFor(x.weather_code[i])}
-      <div class="rain">${Math.round(x.precipitation_probability_max?.[i] ?? 0)}%</div>
-      <div class="temps">
-        <div class="tmin">${min}°</div>
-        <div class="bar"><div class="seg" style="left:${start}%;width:${Math.max(6,width)}%"></div></div>
-        <div class="tmax">${max}°</div>
-      </div>
-    `;
-    box.appendChild(row);
-  }
-}
-
-/* ===== LOADERS ===== */
-async function loadByName(name){
+async function fetchGDACS_Detail(eventid){
   try{
-    const g=await geocode(name); const d=await forecast(g.lat,g.lon);
-    renderMain(d,g.label); renderHours(d); renderDays(d);
-  }catch(e){ alert(e.message||e); }
+    const url=`https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=TC&eventid=${encodeURIComponent(eventid)}`;
+    const r=await fetch(url,{headers:{'Accept':'application/json'}});if(!r.ok)return null;
+    const j=await r.json();
+    let lat=null,lon=null,maxwind=null,maxgust=null,timeStr=null;
+    if(j?.track&&Array.isArray(j.track)&&j.track.length){
+      const last=j.track[j.track.length-1];
+      lat=last?.lat??null;lon=last?.lon??null;
+      if(last?.windspeed_kts)maxwind=kt2kmh(last.windspeed_kts);
+      if(last?.gust_kts)maxgust=kt2kmh(last.gust_kts);
+      if(last?.timestring)timeStr=last.timestring;
+    }
+    if(!maxwind&&j?.maxwind_kts)maxwind=kt2kmh(j.maxwind_kts);
+    if(!maxgust&&j?.maxgust_kts)maxgust=kt2kmh(j.maxgust_kts);
+    return {lat,lon,maxwind,maxgust,timeStr};
+  }catch{return null;}
 }
-function loadByGPS(){
-  if(!navigator.geolocation){ alert("Thiết bị không hỗ trợ GPS"); return; }
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const {latitude:lat, longitude:lon}=pos.coords; let label=`(${lat.toFixed(3)}, ${lon.toFixed(3)})`;
-    try{
-      const r=await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=vi&count=1`);
-      const j=await r.json(); if(j.results?.[0]){ const a=j.results[0]; label=`${a.name}${a.admin1? ", "+a.admin1:""}${a.country? ", "+a.country:""}`; }
-    }catch{}
-    const d=await forecast(lat,lon); renderMain(d,label); renderHours(d); renderDays(d);
-  }, err=> alert("Không lấy được GPS: "+err.message));
+async function loadStorms(){
+  el('#stormStatus').textContent="Đang tải bão từ GDACS…";
+  try{
+    const list=await fetchGDACS_List(30);
+    const withDetail=await Promise.all(list.map(async s=>{
+      const d=await fetchGDACS_Detail(s.eventid);
+      if(d){
+        s.lat=d.lat??s.lat; s.lon=d.lon??s.lon;
+        s.maxwind=s.maxwind??d.maxwind??null;
+        s.maxgust=s.maxgust??d.maxgust??null;
+        s.timeStr=d.timeStr||s.timeStr;
+        s.approx=false;
+      }else{
+        s.maxgust=s.maxgust ?? guessGust(s.maxwind);
+        s.approx=true;
+      }
+      s._life = stormLifecycle(s);   // NEW: gắn trạng thái vòng đời
+      return s;
+    }));
+
+    // NEW: ẨN bão đã tan > 3 ngày
+    storms = withDetail.filter(s => !(s._life && s._life.hide));
+
+    renderStorms();
+    el('#stormStatus').textContent=`Đã nạp ${storms.length} bão.`;
+    mapResetStormMarkers(); storms.forEach(addStormMarker);
+  }catch(e){ console.error(e); el('#stormStatus').textContent="Không tải được bão (có thể CORS bị chặn)."; }
+}
+function distKm(aLat,aLon,bLat,bLon){const R=6371,toRad=d=>d*Math.PI/180;const dLat=toRad(bLat-aLat),dLon=toRad(bLon-aLon);const s1=Math.sin(dLat/2)**2+Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(Math.PI*(dLon/360))**2;return 2*R*Math.asin(Math.sqrt(Math.sin(dLat/2)**2 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(dLon/2)**2));}
+function renderStorms(){
+  const box=el('#stormList');box.innerHTML='';
+  if(!storms.length){box.innerHTML=`<div class="hint">Không có bão đang hoạt động (bão đã tan > 3 ngày sẽ tự ẩn).</div>`;return;}
+  let arr=storms.slice();
+  if(currentRef?.lat&&currentRef?.lon){
+    arr.sort((a,b)=>{
+      const da=(a.lat&&a.lon)?distKm(currentRef.lat,currentRef.lon,a.lat,a.lon):Infinity;
+      const db=(b.lat&&b.lon)?distKm(currentRef.lat,currentRef.lon,b.lat,b.lon):Infinity;
+      return da-db;
+    });
+  }else{
+    const rank=l=>l==='RED'?0:(l==='ORANGE'?1:2);
+    arr.sort((a,b)=>rank(a.alertlevel)-rank(b.alertlevel));
+  }
+  arr.forEach(s=>{
+    const level=(s.alertlevel||'').toLowerCase();
+    const km=a=>a!=null?(a+' km/h'):'—';
+    const approx=s.approx?'≈':'';
+    const warn=hazardAdvice(s);
+    const life=s._life || {state:'active'};
+    const stateLabel = life.state==='ended'
+        ? `ĐÃ TAN (${life.daysAgo} ngày trước)`
+        : (life.state==='active-until'
+            ? `ĐANG HOẠT ĐỘNG (đến ${s.end})`
+            : 'ĐANG HOẠT ĐỘNG');
+
+    const div=document.createElement('div');
+    div.className='storm'+(life.state==='ended'?' ended':'');
+    div.innerHTML=`
+      <div class="hd">
+        <div class="name">${s.name||'Không tên'}</div>
+        <div class="badge ${life.state==='ended'?'gray':level}">
+          ${life.state==='ended'?'ENDED':(s.alertlevel||'—')}
+        </div>
+      </div>
+      <div class="kv">
+        <div><b>Trạng thái:</b> ${stateLabel}</div>
+        <div><b>Khu vực:</b> ${s.countries||'—'}</div>
+        <div><b>Bắt đầu:</b> ${s.start||'—'}</div>
+        <div><b>Kết thúc (ước tính):</b> ${s.end||'—'}</div>
+        <div><b>Tâm/Lat, Lon:</b> ${s.lat!=null&&s.lon!=null? approx + s.lat.toFixed(2)+", "+s.lon.toFixed(2) : '—'}</div>
+        <div><b>Gió duy trì:</b> ${km(s.maxwind)}</div>
+        <div><b>Gió giật:</b> ${s.maxgust!=null?((s.timeStr?'':'~')+km(s.maxgust)):'—'}</div>
+      </div>
+      ${s.timeStr?`<div class="hint" style="margin-top:4px">Cập nhật track: ${s.timeStr} (UTC)</div>`:''}
+      ${s.gdacsUrl?`<div class="hint"><a href="${s.gdacsUrl}" target="_blank">Chi tiết GDACS</a></div>`:''}
+      <div class="warn">⚠️ ${warn}</div>
+    `;
+    box.appendChild(div);
+  });
 }
 
-/* ===== THEME ===== */
-function setTheme(name){
-  document.documentElement.setAttribute('data-theme', name==='light'?'light':'dark');
-  document.getElementById('lightBtn').classList.toggle('active', name==='light');
-  document.getElementById('darkBtn').classList.toggle('active', name!=='light');
-  localStorage.setItem('theme', name);
-}
-(function initTheme(){
-  const saved=localStorage.getItem('theme');
-  if(saved) setTheme(saved);
-})();
-document.getElementById('lightBtn').onclick=()=> setTheme('light');
-document.getElementById('darkBtn').onclick=()=> setTheme('dark');
+/* --- Install (PWA) button --- */
+let deferredPrompt=null;
+const installBtn=document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;installBtn.style.display='inline-block';});
+installBtn?.addEventListener('click',async()=>{if(!deferredPrompt){alert('iPhone: Safari → Share → Add to Home Screen');return;}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installBtn.style.display='none';});
 
-/* ===== EVENTS ===== */
-document.getElementById('btnS').onclick=()=>{ const q=el('#q').value.trim(); if(q) loadByName(q); };
-document.getElementById('btnG').onclick=loadByGPS;
+/* --- Service Worker --- */
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}
 
-/* Default: Hà Nội */
+/* --- Events & Init --- */
+document.getElementById('btnS').onclick=()=>{const q=el('#q').value.trim();if(q)loadByName(q);};
+document.getElementById('btnG').onclick=()=> loadByGPS();
+document.getElementById('btnStorms').onclick=()=> loadStorms();
+document.getElementById('btnAuto').onclick=()=>{const btn=document.getElementById('btnAuto');if(autoTimer){clearInterval(autoTimer);autoTimer=null;btn.textContent='Auto 3h: OFF';}else{loadStorms();autoTimer=setInterval(loadStorms,3*60*60*1000);btn.textContent='Auto 3h: ON';}};
+mapInit();
 loadByName("Hà Nội");
 </script>
 </body>
